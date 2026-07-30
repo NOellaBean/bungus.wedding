@@ -699,10 +699,12 @@ const HIT_H = Math.round(HIT_W * 2897 / 2156);
 const hitCv = document.createElement('canvas');
 hitCv.width = HIT_W; hitCv.height = HIT_H;
 const hitCtx = hitCv.getContext('2d', { willReadFrequently:true });
+let hitMapReady = false;
 function buildHitMap() {
   if (!lClosed.complete || !lClosed.naturalWidth) return;
   hitCtx.clearRect(0,0,HIT_W,HIT_H);
   hitCtx.drawImage(lClosed, 0, 0, HIT_W, HIT_H);
+  hitMapReady = true;
 }
 if (lClosed.complete && lClosed.naturalWidth) buildHitMap();
 else lClosed.addEventListener('load', buildHitMap);
@@ -710,6 +712,9 @@ function isOverEnvelope(cx, cy) {
   const r = envUnit.getBoundingClientRect();
   const rx = (cx - r.left)/r.width, ry = (cy - r.top)/r.height;
   if (rx<0||rx>1||ry<0||ry>1) return false;
+  // Until the envelope mask image has decoded (common on the first load, esp.
+  // mobile), fall back to the bounding box so the very first tap still opens it.
+  if (!hitMapReady) return true;
   try { return hitCtx.getImageData(Math.floor(rx*HIT_W),Math.floor(ry*HIT_H),1,1).data[3] > 20; }
   catch(e) { return true; }
 }
@@ -1345,7 +1350,7 @@ function onVWheel(e) {
   if (!vScrollActive) return;
   if (phase !== 'done') return;
   e.preventDefault();
-  vScrollTarget = Math.max(0, Math.min(V_SCROLL_MAX, vScrollTarget + e.deltaY * 1.55));
+  vScrollTarget = Math.max(0, Math.min(V_SCROLL_MAX, vScrollTarget + e.deltaY * 4.65));
 }
 
 function onVTouchStart(e) {
@@ -1357,7 +1362,7 @@ function onVTouchMove(e) {
   e.preventDefault();
   const dy = touchStartY - e.touches[0].clientY;
   touchStartY = e.touches[0].clientY;
-  vScrollTarget = Math.max(0, Math.min(V_SCROLL_MAX, vScrollTarget + dy * 1.70));
+  vScrollTarget = Math.max(0, Math.min(V_SCROLL_MAX, vScrollTarget + dy * 5.10));
 }
 
 function vScrollTick() {
